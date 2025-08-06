@@ -43,6 +43,8 @@ uninit_new (struct page *page, void *va, vm_initializer *init,
 }
 
 /* Initalize the page on first fault */
+/* 얘는 수정이 크게 필요 없을수 있음 - 이미 완성되어 제공되었다는 깃북피셜 */ 
+/* 역할은 지금 코드 보고 참고 가능하다 */
 static bool
 uninit_initialize (struct page *page, void *kva) {
 	struct uninit_page *uninit = &page->uninit;
@@ -52,6 +54,7 @@ uninit_initialize (struct page *page, void *kva) {
 	void *aux = uninit->aux;
 
 	/* TODO: You may need to fix this function. */
+	/* 일단 anon_initialize 또는 file_initialize가 먼저 실행된 후, lazy_load_segment가 실행됨 */
 	return uninit->page_initializer (page, uninit->type, kva) &&
 		(init ? init (page, aux) : true);
 }

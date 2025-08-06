@@ -2,9 +2,13 @@
 
 #include "vm/vm.h"
 #include "devices/disk.h"
+#include "lib/kernel/bitmap.h" // 비트맵 사용을 위한 헤더 추가
+#include "threads/mmu.h" // 일단 PGSIZE 때문에 추가 - 사실 vaddr.h에 있긴한데 혹시 mmu.h에 있는거도 필요할까봐
+
+struct bitmap *swap_table; // 스왑테이블 주소 전역변수
 
 /* DO NOT MODIFY BELOW LINE */
-static struct disk *swap_disk;
+static struct disk *swap_disk; // 스왑디스크 주소 전역변수
 static bool anon_swap_in (struct page *page, void *kva);
 static bool anon_swap_out (struct page *page);
 static void anon_destroy (struct page *page);
@@ -21,8 +25,10 @@ static const struct page_operations anon_ops = {
 void
 vm_anon_init (void) {
 	/* TODO: Set up the swap_disk. */
-	swap_disk = NULL;
-}
+	swap_disk = disk_get(1,1); // 스왑디스크 불러오는 함수 - (1,1)이 스왑디스크를 의미
+	swap_table = bitmap_create(disk_size(swap_disk) / PGSIZE); // 비트맵 생성 - 디스크 사이즈/페이지 사이즈 = 총 스왑 테이블 엔트리 개수만큼
+
+}	
 
 /* Initialize the file mapping */
 bool
@@ -31,6 +37,7 @@ anon_initializer (struct page *page, enum vm_type type, void *kva) {
 	page->operations = &anon_ops;
 
 	struct anon_page *anon_page = &page->anon;
+
 }
 
 /* Swap in the page by read contents from the swap disk. */
@@ -43,6 +50,21 @@ anon_swap_in (struct page *page, void *kva) {
 static bool
 anon_swap_out (struct page *page) {
 	struct anon_page *anon_page = &page->anon;
+	
+	if (bitmap_all(swap_table, 0, bitmap_size(swap_table))) // 만약 스왑 테이블이 전부 true이면
+		PANIC("PANIC : SWAP_TABLE_IS_FULL"); // 스왑 디스크가 꽉 찬 것이므로 커널 패닉
+
+	for (int i = 0; i < bitmap_size(swap_table); i+8) {
+		if (bitmap_none(swap_table, i, 8))
+			anon_page->swap_table_idx = i;
+			break;
+	}
+
+	for (int i = anon_page->swap_table_idx; i < i+8 ; i++) {
+		
+		disk_write(swap_disk, i, page->va); // 맞는지아닌지 몰루.. 근데 문제는 섹터단위라는것..
+	}
+
 }
 
 /* Destroy the anonymous page. PAGE will be freed by the caller. */

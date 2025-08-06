@@ -7,6 +7,14 @@
 
 /* Bitmap abstract data type. */
 
+/* From the outside, a bitmap is an array of bits.  From the
+   inside, it's an array of elem_type (defined above) that
+   simulates an array of bits. */
+struct bitmap {
+	size_t bit_cnt;     /* Number of bits. */
+	elem_type *bits;    /* Elements that represent bits. */
+};
+
 /* Creation and destruction. */
 struct bitmap *bitmap_create (size_t bit_cnt);
 struct bitmap *bitmap_create_in_buf (size_t bit_cnt, void *, size_t byte_cnt);

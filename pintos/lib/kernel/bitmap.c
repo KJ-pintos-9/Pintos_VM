@@ -24,10 +24,10 @@ typedef unsigned long elem_type;
 /* From the outside, a bitmap is an array of bits.  From the
    inside, it's an array of elem_type (defined above) that
    simulates an array of bits. */
-struct bitmap {
-	size_t bit_cnt;     /* Number of bits. */
-	elem_type *bits;    /* Elements that represent bits. */
-};
+// struct bitmap {
+// 	size_t bit_cnt;     /* Number of bits. */
+// 	elem_type *bits;    /* Elements that represent bits. */
+// };
 
 /* Returns the index of the element that contains the bit
    numbered BIT_IDX. */

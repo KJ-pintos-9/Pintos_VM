@@ -22,6 +22,12 @@
 #include "vm/vm.h"
 #endif
 
+struct file_page_info {
+	struct file *file;
+	uint32_t page_read_bytes;
+	uint32_t page_zero_bytes;
+	off_t ofs;
+};
 
 static void process_cleanup (void);
 //static bool load (const char *file_name, struct intr_frame *if_);
@@ -439,6 +445,8 @@ static bool validate_segment (const struct Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		uint32_t read_bytes, uint32_t zero_bytes,
 		bool writable);
+static bool
+lazy_load_segment (struct page *page, struct file_page_info *aux);
 
 /* FILE_NAME에서 ELF 실행 파일을 현재 스레드로 로드합니다.
  * 실행 파일의 진입점을 *RIP에 저장하고
@@ -753,10 +761,22 @@ install_page (void *upage, void *kpage, bool writable) {
  * 프로젝트 2에서만 함수를 구현하려면 위의 블록에 구현하세요. */
 
 static bool
-lazy_load_segment (struct page *page, void *aux) {
+lazy_load_segment (struct page *page, struct file_page_info *aux) {
 	/* TODO: 파일에서 세그먼트를 로드합니다 */
 	/* TODO: 이것은 주소 VA에서 첫 번째 페이지 폴트가 발생할 때 호출됩니다. */
 	/* TODO: 이 함수를 호출할 때 VA를 사용할 수 있습니다. */
+	// struct file *file = aux->file;
+	// off_t ofs = aux->ofs;
+	// uint32_t page_read_bytes = aux->page_read_bytes;
+	// uint32_t page_zero_bytes = aux->page_zero_bytes;
+
+	// file_seek (file, ofs);
+
+	// file_read(file, page->frame->kva, page_read_bytes); //??
+
+	
+	// //
+	
 }
 
 /* FILE의 오프셋 OFS에서 시작하여 주소 UPAGE로 세그먼트를 로드합니다.
@@ -785,7 +805,12 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 		/* TODO: lazy_load_segment에 정보를 전달하기 위해 aux를 설정합니다. */
-		void *aux = NULL;
+		struct file_page_info *aux = malloc(sizeof(struct file_page_info));
+		aux->file = file;
+		aux->ofs = ofs;
+		aux->page_read_bytes = page_read_bytes;
+		aux->page_zero_bytes = page_zero_bytes;
+
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
 					writable, lazy_load_segment, aux))
 			return false;

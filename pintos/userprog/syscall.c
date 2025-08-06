@@ -15,6 +15,7 @@
 #include <string.h>
 #include "threads/palloc.h"
 #include "threads/malloc.h"
+#include "vm/file.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -284,6 +285,22 @@ unsigned tell (int fd) {
 	return file_tell(opened_file);
 }
 
+void *mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
+	struct thread *t = thread_current();
+
+	if (t->fdt[fd]->entry == NULL)
+		return NULL;
+
+	struct file *opened_file = t->fdt[fd]->entry;
+
+	return do_mmap(addr, length, writable, opened_file, offset);
+}
+
+void munmap (void *addr) {
+	do_munmap(addr);
+}
+
+
 
 /* The main system call interface */
 void
@@ -349,6 +366,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		break;
 	case SYS_TELL:
 		f->R.rax = tell(f->R.rdi);
+		break;
+	case SYS_MMAP:
+		f->R.rax = mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
+		break;
+	case SYS_MUNMAP:
+		munmap(f->R.rdi);
 		break;
 	default:
 		thread_exit ();

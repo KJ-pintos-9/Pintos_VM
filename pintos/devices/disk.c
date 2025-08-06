@@ -48,18 +48,18 @@
 #define CMD_READ_SECTOR_RETRY 0x20      /* READ SECTOR with retries. */
 #define CMD_WRITE_SECTOR_RETRY 0x30     /* WRITE SECTOR with retries. */
 
-/* An ATA device. */
-struct disk {
-	char name[8];               /* Name, e.g. "hd0:1". */
-	struct channel *channel;    /* Channel disk is on. */
-	int dev_no;                 /* Device 0 or 1 for master or slave. */
+// /* An ATA device. */
+// struct disk {
+// 	char name[8];               /* Name, e.g. "hd0:1". */
+// 	struct channel *channel;    /* Channel disk is on. */
+// 	int dev_no;                 /* Device 0 or 1 for master or slave. */
 
-	bool is_ata;                /* 1=This device is an ATA disk. */
-	disk_sector_t capacity;     /* Capacity in sectors (if is_ata). */
+// 	bool is_ata;                /* 1=This device is an ATA disk. */
+// 	disk_sector_t capacity;     /* Capacity in sectors (if is_ata). */
 
-	long long read_cnt;         /* Number of sectors read. */
-	long long write_cnt;        /* Number of sectors written. */
-};
+// 	long long read_cnt;         /* Number of sectors read. */
+// 	long long write_cnt;        /* Number of sectors written. */
+// };
 
 /* An ATA channel (aka controller).
    Each channel can control up to two disks. */
