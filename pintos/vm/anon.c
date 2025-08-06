@@ -54,15 +54,16 @@ anon_swap_out (struct page *page) {
 	if (bitmap_all(swap_table, 0, bitmap_size(swap_table))) // 만약 스왑 테이블이 전부 true이면
 		PANIC("PANIC : SWAP_TABLE_IS_FULL"); // 스왑 디스크가 꽉 찬 것이므로 커널 패닉
 
-	for (int i = 0; i < bitmap_size(swap_table); i+8) {
-		if (bitmap_none(swap_table, i, 8))
-			anon_page->swap_table_idx = i;
-			break;
-	}
-
-	for (int i = anon_page->swap_table_idx; i < i+8 ; i++) {
-		
-		disk_write(swap_disk, i, page->va); // 맞는지아닌지 몰루.. 근데 문제는 섹터단위라는것..
+	for (int idx = 0; idx < bitmap_size(swap_table); idx++) {
+		if (!bitmap_test(swap_table, idx)) {
+			for (int i = 0; i < 8; i++) {
+				disk_write(swap_disk, idx*8 + i, page->va + DISK_SECTOR_SIZE*i); // 이 부분 GPT 도움받음 -> 반드시 나중에 이유 정리할것
+			}
+			bitmap_mark(swap_table, idx);
+			anon_page->swap_table_idx = idx;
+			anon_page->is_swaped_out = true;
+			return true;
+		}
 	}
 
 }
