@@ -37,6 +37,8 @@ anon_initializer (struct page *page, enum vm_type type, void *kva) {
 	page->operations = &anon_ops;
 
 	struct anon_page *anon_page = &page->anon;
+	anon_page->swap_table_idx = 0; // 일단 0으로 초기화
+	anon_page->is_swaped_out = false;
 
 }
 
@@ -44,12 +46,28 @@ anon_initializer (struct page *page, enum vm_type type, void *kva) {
 static bool
 anon_swap_in (struct page *page, void *kva) {
 	struct anon_page *anon_page = &page->anon;
+	ASSERT(anon_page->is_swaped_out); // swaped out된 상태일 것
+
+	size_t idx = anon_page->swap_table_idx;
+
+	if (!bitmap_test(swap_table, idx))
+		return false; // 뭔가 잘못됨..
+
+	for (int i = 0; i < 8; i++) {
+		disk_read(swap_disk, idx*8 + i, kva + DISK_SECTOR_SIZE*i);
+	}
+
+	bitmap_reset(swap_table, idx);
+	anon_page->is_swaped_out = false;
+	return true;
+
 }
 
 /* Swap out the page by writing contents to the swap disk. */
 static bool
 anon_swap_out (struct page *page) {
 	struct anon_page *anon_page = &page->anon;
+	ASSERT(!anon_page->is_swaped_out); // 아직 swaped out되지 않은 상태일 것
 	
 	if (bitmap_all(swap_table, 0, bitmap_size(swap_table))) // 만약 스왑 테이블이 전부 true이면
 		PANIC("PANIC : SWAP_TABLE_IS_FULL"); // 스왑 디스크가 꽉 찬 것이므로 커널 패닉
