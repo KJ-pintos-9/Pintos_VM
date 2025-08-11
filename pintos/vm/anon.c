@@ -24,7 +24,7 @@ static const struct page_operations anon_ops = {
 /* Initialize the data for anonymous pages */
 void vm_anon_init(void)
 {
-    /* TODO: Set up the swap_disk. */
+    // /* TODO: Set up the swap_disk. */
     swap_disk =
         disk_get(1, 1);  // 스왑디스크 불러오는 함수 - (1,1)이 스왑디스크를 의미
     swap_table =
@@ -40,27 +40,27 @@ bool anon_initializer(struct page *page, enum vm_type type, void *kva)
     page->operations = &anon_ops;
 
     struct anon_page *anon_page = &page->anon;
-    anon_page->swap_table_idx = 0;  // 일단 0으로 초기화
-    anon_page->is_swaped_out = false;
+    // anon_page->swap_table_idx = 0;  // 일단 0으로 초기화
+    // anon_page->is_swaped_out = false;
 }
 
 /* Swap in the page by read contents from the swap disk. */
 static bool anon_swap_in(struct page *page, void *kva)
 {
     struct anon_page *anon_page = &page->anon;
-    ASSERT(anon_page->is_swaped_out);  // swaped out된 상태일 것
+    //ASSERT(anon_page->is_swaped_out);  // swaped out된 상태일 것
 
-    size_t idx = anon_page->swap_table_idx;
+    // size_t idx = anon_page->swap_table_idx;
 
-    if (!bitmap_test(swap_table, idx)) return false;  // 뭔가 잘못됨..
+    // if (!bitmap_test(swap_table, idx)) return false;  // 뭔가 잘못됨..
 
-    for (int i = 0; i < 8; i++)
-    {
-        disk_read(swap_disk, idx * 8 + i, kva + DISK_SECTOR_SIZE * i);
-    }
+    // for (int i = 0; i < 8; i++)
+    // {
+    //     disk_read(swap_disk, idx * 8 + i, kva + DISK_SECTOR_SIZE * i);
+    // }
 
-    bitmap_reset(swap_table, idx);
-    anon_page->is_swaped_out = false;
+    // bitmap_reset(swap_table, idx);
+    // anon_page->is_swaped_out = false;
     return true;
 }
 
