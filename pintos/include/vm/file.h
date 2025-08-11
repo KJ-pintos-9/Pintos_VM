@@ -5,6 +5,10 @@
 
 struct file_page
 {
+  struct file *file;
+  off_t offset;
+  size_t bytes_read;
+  size_t zero_bytes;
 	bool is_swaped_out;
 };
 
