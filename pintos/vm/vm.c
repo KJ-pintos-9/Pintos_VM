@@ -337,26 +337,26 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
         enum vm_type type = page_get_type(src_page);
         bool writable = src_page->writable;
 
-        //TYPE = VM_UNINIT일 경우 따로 처리
+        //TYPE = VM_UNINIT일 경우 따로 처리!
         if (type == VM_UNINIT){
 
-            // init, aux는 lazy loading을 위해 필요한 함수 포인터와 context 정보이므로,
+            // init, aux는 lazy loading을 위해 필요한 함수 포인터와 context 정보이므로,!
             // 자식도 동일한 방식으로 lazy load가 가능하게 하기 위해 그대로 복사해야 함
             struct uninit_page *uninit = &src_page->uninit;
 
             if (!vm_alloc_page_with_initializer(type, va, writable, uninit->init, uninit->aux)) { return false; }
 
-            //type = uninit 이면 즉시 할당 vm_do_claim_page()
+            //type = uninit 이면 즉시 할당 vm_do_claim_page()!
             if (!vm_do_claim_page(va)) {return false;}
 
         }else{
-            //anon, file page 처리
+            //anon, file page 처리!
             vm_alloc_page(type, va, writable);
             if (!vm_do_claim_page(va)) {return false;}
 
             struct page *dst_page = spt_find_page(dst, va);
 
-            //물리 메모리까지 복사
+            //물리 메모리까지 복사!
             memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
         }
     }
@@ -374,6 +374,5 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
      * TODO: 수정된 모든 내용을 저장소에 다시 기록하세요. */
 
      struct thread *curr = thread_current();
-     process_cleanup();
      hash_clear(&spt->spt_hash, curr);
 }
