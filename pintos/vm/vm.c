@@ -103,11 +103,12 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage,
                 return false;
         }
 
-        page->writable = writable;
+        
 
         // uninit_new를 호출하여 "uninit" 페이지 구조체를 생성
         uninit_new(page, upage, init, type, aux, page_initilazer);
 
+        page->writable = writable;
         /* TODO: Insert the page into the spt. */
         /* TODO: 페이지를 spt에 삽입하세요. */
         if (!spt_insert_page(spt, page))
@@ -206,7 +207,7 @@ static struct frame *vm_get_frame(void)
     /* TODO: 이 함수를 완성하세요. */
 
     // 사용자 풀에서 새 물리 페이지를 가져옴
-    void *kva = palloc_get_page(PAL_USER);
+    void *kva = palloc_get_page(PAL_USER | PAL_ZERO);
     if (kva == NULL)
     {
         PANIC("todo");
