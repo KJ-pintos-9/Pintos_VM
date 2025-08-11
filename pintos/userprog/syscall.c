@@ -282,23 +282,24 @@ unsigned tell(int fd)
 
 void *mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 {
-    struct thread *t = thread_current();
+  struct thread *t = thread_current();
 
-    if (t->fdt[fd]->entry == NULL) return NULL;
+  if (addr == 0 || is_kernel_vaddr(addr) || length == 0 || fd < 0 || fd > 127 || t->fdt[fd]->entry == NULL) return NULL;
 
 	if (pg_ofs(addr) != 0)
 		return NULL;
 
 	struct file *opened_file = file_reopen(t->fdt[fd]->entry);
-	
+	void *initial_addr = addr;
+
 	uint32_t read_bytes = length < file_length(opened_file) ? length : file_length(opened_file);
-	uint32_t zero_bytes = ROUND_UP(read_bytes, PGSIZE) - read_bytes;
+	uint32_t zero_bytes = ROUND_UP(length, PGSIZE) - read_bytes;
 	
 	ASSERT((read_bytes + zero_bytes) % PGSIZE == 0);
 
 	while (read_bytes > 0 || zero_bytes > 0)
 	{
-		if (spt_find_page(&t->spt, addr)) { // 연속된 가상주소에 이미 매핑되어있을경우 실패
+		if (is_kernel_vaddr(addr) || spt_find_page(&t->spt, addr)) { // 연속된 가상주소에 이미 매핑되어있을경우 실패, addr가 커널주소 이상으로 올라갈경우 실패
 			return NULL;
 		}
 
@@ -317,8 +318,18 @@ void *mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 		aux->bytes_read = page_read_bytes;
 		aux->zero_bytes = page_zero_bytes;
 
-		if (!vm_alloc_page_with_initializer(VM_FILE, addr, writable, do_mmap, aux))
-			return NULL;
+		if (page_read_bytes)
+		{
+			if (!vm_alloc_page_with_initializer(VM_FILE, addr, writable, do_mmap, aux))
+				return NULL;
+		}
+		else
+		{
+			if (!vm_alloc_page_with_initializer(VM_ANON, addr, writable, do_mmap, aux))
+				return NULL;
+		}
+
+
 
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
@@ -327,7 +338,7 @@ void *mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 
 	}	
 
-	return addr;
+	return initial_addr;
 }
 
 void munmap(void *addr)
