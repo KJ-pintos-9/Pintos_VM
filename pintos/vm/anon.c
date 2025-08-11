@@ -48,19 +48,19 @@ bool anon_initializer(struct page *page, enum vm_type type, void *kva)
 static bool anon_swap_in(struct page *page, void *kva)
 {
     struct anon_page *anon_page = &page->anon;
-    //ASSERT(anon_page->is_swaped_out);  // swaped out된 상태일 것
+    ASSERT(anon_page->is_swaped_out);  // swaped out된 상태일 것
 
-    // size_t idx = anon_page->swap_table_idx;
+    size_t idx = anon_page->swap_table_idx;
 
-    // if (!bitmap_test(swap_table, idx)) return false;  // 뭔가 잘못됨..
+    if (!bitmap_test(swap_table, idx)) return false;  // 뭔가 잘못됨..
 
-    // for (int i = 0; i < 8; i++)
-    // {
-    //     disk_read(swap_disk, idx * 8 + i, kva + DISK_SECTOR_SIZE * i);
-    // }
+    for (int i = 0; i < 8; i++)
+    {
+        disk_read(swap_disk, idx * 8 + i, kva + DISK_SECTOR_SIZE * i);
+    }
 
-    // bitmap_reset(swap_table, idx);
-    // anon_page->is_swaped_out = false;
+    bitmap_reset(swap_table, idx);
+    anon_page->is_swaped_out = false;
     return true;
 }
 
