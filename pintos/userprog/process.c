@@ -855,8 +855,8 @@ static bool load_segment(struct file *file, off_t ofs, uint8_t *upage,
         }
         aux->file = file;
         aux->offset = ofs;
-        aux->bytes_read = read_bytes;
-        aux->zero_bytes = zero_bytes;
+        aux->bytes_read = page_read_bytes;
+        aux->zero_bytes = page_zero_bytes;
 
         // aux 동적 할당 해 준 거 언젠가 free 해야 할 것.... 시기를 잘 모르겠음
 
@@ -868,6 +868,7 @@ static bool load_segment(struct file *file, off_t ofs, uint8_t *upage,
         read_bytes -= page_read_bytes;
         zero_bytes -= page_zero_bytes;
         upage += PGSIZE;
+				ofs += page_read_bytes;
     }
     return true;
 }

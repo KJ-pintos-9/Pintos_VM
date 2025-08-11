@@ -2,6 +2,7 @@
 
 #include "vm/vm.h"
 #include "threads/mmu.h" // PGSIZE 때문에 추가
+#include "userprog/syscall.h" // do_mmap, do_munmap 때문에 추가
 
 static bool file_backed_swap_in(struct page *page, void *kva);
 static bool file_backed_swap_out(struct page *page);
@@ -40,31 +41,71 @@ static bool file_backed_swap_in(struct page *page, void *kva)
 static bool file_backed_swap_out(struct page *page)
 {
     struct file_page *file_page UNUSED = &page->file;
+		file_seek(page->file.file, page->file.offset);
+		if (file_write(page->file.file, page->frame->kva, page->file.bytes_read) != page->file.bytes_read)
+			return false;
+		
+		return true;
+
 }
 
 /* Destory the file backed page. PAGE will be freed by the caller. */
 static void file_backed_destroy(struct page *page)
 {
     struct file_page *file_page UNUSED = &page->file;
+		struct thread *t = thread_current();
+
+		if (pml4_is_dirty(t->pml4, page->va)) swap_out(page);
+		file_close(page->file.file);
+		
+
 }
 
 /* Do the mmap - 얘가 마치 lazy_load_segment와 같은 역할을 해야 할 듯 */
-void *
-do_mmap (void *addr, size_t length, int writable,
-		struct file *file, off_t offset) {
-	if ((uint64_t)addr % PGSIZE != 0 || addr == 0 || length == 0) // addr가 페이지 정렬되어있어야 한다는 조건 구현 - 아닐수도 있음
-		return NULL;
 
-	/* 일단 페이지 몇개가 필요한지 계산 */
-	/* length /  */
-	
-	// if (vm_alloc_page_with_initializer(VM_FILE, addr, writable, )) //?
-	// 	return addr;
-	
+bool
+do_mmap (struct page *page, void *aux)
+{
+	struct mmap_page_info *info = (struct mmap_page_info *) aux;
 
+	/* struct file_page에 정보 넣어주기 */
+	page->file.file = info->file;
+	page->file.offset = info->offset;
+	page->file.bytes_read = info->bytes_read;
+	page->file.zero_bytes = info->zero_bytes;
+
+	uint8_t *kva = page->frame->kva;
+
+	if (info->file != NULL)
+	{
+		file_seek(info->file, info->offset);
+
+		if (file_read(info->file, kva, info->bytes_read) != (int) info->bytes_read)
+		{
+			palloc_free_page(kva);
+			return false;
+		}
+
+
+		memset(kva + info->bytes_read, 0, info->zero_bytes);
+		return true;
+
+	}
+
+	return false;
 }
+
 
 /* Do the munmap */
 void do_munmap(void *addr)
 {
+	struct page *page;
+	struct thread *t = thread_current();
+	
+	if ((page = spt_find_page(&t->spt, addr)) == NULL) exit(-1);
+
+	spt_remove_page(&t->spt, page);
+
+	pml4_clear_page(t->pml4, addr);
+
 }

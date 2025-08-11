@@ -1,4 +1,4 @@
-#include "userprog/syscall.h"
+//#include "userprog/syscall.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -20,16 +20,12 @@
 #include "userprog/gdt.h"
 #include "userprog/process.h"  // fork() 때문에 추가
 
+#include "userprog/syscall.h"
+
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
 
 static struct lock filesys_lock;
-struct mmap_page_info {
-	struct file *file;
-	size_t length;
-	off_t offset;
-
-};
 
 /* 시스템 콜.
  *
@@ -124,7 +120,8 @@ int exec(const char *cmd_line)
 
     if (cmd_line == NULL) exit(-1);
 
-    if (pml4_get_page(t->pml4, cmd_line) == NULL) exit(-1);
+    //if (pml4_get_page(t->pml4, cmd_line) == NULL) exit(-1);
+		if (spt_find_page(&t->spt, cmd_line) == NULL) exit(-1);
 
     char *cmd_line_copy = palloc_get_page(
         0);  // cmd_line 그냥넣으면 로드할 때 그 주소로 액세스 불가능해서 터짐
@@ -144,7 +141,8 @@ bool create(const char *file, unsigned initial_size)
 
     if (file == NULL) exit(-1);
 
-    if (pml4_get_page(t->pml4, file) == NULL) exit(-1);
+    //if (pml4_get_page(t->pml4, file) == NULL) exit(-1);
+		if (spt_find_page(&t->spt, file) == NULL) exit(-1);
 
     if (strlen(file) == 0) return false;
 
@@ -157,7 +155,8 @@ bool remove(const char *file)
 
     if (file == NULL) exit(-1);
 
-    if (pml4_get_page(t->pml4, file) == NULL) exit(-1);
+    //if (pml4_get_page(t->pml4, file) == NULL) exit(-1);
+		if (spt_find_page(&t->spt, file) == NULL) exit(-1);
 
     return filesys_remove(file);
 }
@@ -169,7 +168,8 @@ int open(const char *file)
 
     if (file == NULL) exit(-1);
 
-    if (pml4_get_page(t->pml4, file) == NULL) exit(-1);
+    //if (pml4_get_page(t->pml4, file) == NULL) exit(-1);
+		if (spt_find_page(&t->spt, file) == NULL) exit(-1);
 
     if (strlen(file) == 0) return -1;
 
@@ -221,7 +221,8 @@ int read(int fd, const void *buffer, unsigned length)
 
     if (fd == 0) return input_getc();
 
-    if (pml4_get_page(t->pml4, buffer) == NULL) exit(-1);
+    //if (pml4_get_page(t->pml4, buffer) == NULL) exit(-1);
+		if (spt_find_page(&t->spt, buffer) == NULL) exit(-1);
 
     if (fd > 2)
     {
@@ -246,7 +247,8 @@ int write(int fd, const void *buffer, unsigned length)
         return length;
     }
 
-    if (pml4_get_page(t->pml4, buffer) == NULL) exit(-1);
+    //if (pml4_get_page(t->pml4, buffer) == NULL) exit(-1);
+			if (spt_find_page(&t->spt, buffer) == NULL) exit(-1);
 
     if (fd > 2)
     {
@@ -280,26 +282,63 @@ unsigned tell(int fd)
 
 void *mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 {
-    struct thread *t = thread_current();
+  struct thread *t = thread_current();
 
-    if (t->fdt[fd]->entry == NULL) return NULL;
+  if (addr == 0 || is_kernel_vaddr(addr) || length == 0 || fd < 0 || fd > 127 || t->fdt[fd]->entry == NULL) return NULL;
 
 	if (pg_ofs(addr) != 0)
 		return NULL;
 
-	struct file *opened_file = t->fdt[fd]->entry;
-	struct mmap_page_info *aux = malloc(sizeof(struct mmap_page_info));
+	struct file *opened_file = file_reopen(t->fdt[fd]->entry);
+	void *initial_addr = addr;
 
-
-
-	aux->file = opened_file;
-	aux->length = length;
-	aux->offset = offset;
-
-	if (!vm_alloc_page_with_initializer(VM_FILE, addr, writable, do_mmap, aux))
-		return NULL;
+	uint32_t read_bytes = length < file_length(opened_file) ? length : file_length(opened_file);
+	uint32_t zero_bytes = ROUND_UP(length, PGSIZE) - read_bytes;
 	
-	return addr;
+	ASSERT((read_bytes + zero_bytes) % PGSIZE == 0);
+
+	while (read_bytes > 0 || zero_bytes > 0)
+	{
+		if (is_kernel_vaddr(addr) || spt_find_page(&t->spt, addr)) { // 연속된 가상주소에 이미 매핑되어있을경우 실패, addr가 커널주소 이상으로 올라갈경우 실패
+			return NULL;
+		}
+
+		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+		size_t page_zero_bytes = PGSIZE - page_read_bytes;
+
+		struct mmap_page_info *aux = malloc(sizeof(struct mmap_page_info));
+
+		if (aux == NULL)
+		{
+			return NULL;
+		}
+
+		aux->file = opened_file;
+		aux->offset = offset;
+		aux->bytes_read = page_read_bytes;
+		aux->zero_bytes = page_zero_bytes;
+
+		if (page_read_bytes)
+		{
+			if (!vm_alloc_page_with_initializer(VM_FILE, addr, writable, do_mmap, aux))
+				return NULL;
+		}
+		else
+		{
+			if (!vm_alloc_page_with_initializer(VM_ANON, addr, writable, do_mmap, aux))
+				return NULL;
+		}
+
+
+
+		read_bytes -= page_read_bytes;
+		zero_bytes -= page_zero_bytes;
+		addr += PGSIZE;
+		offset += page_read_bytes;
+
+	}	
+
+	return initial_addr;
 }
 
 void munmap(void *addr)

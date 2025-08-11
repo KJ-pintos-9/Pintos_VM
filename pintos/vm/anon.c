@@ -24,7 +24,7 @@ static const struct page_operations anon_ops = {
 /* Initialize the data for anonymous pages */
 void vm_anon_init(void)
 {
-    /* TODO: Set up the swap_disk. */
+    // /* TODO: Set up the swap_disk. */
     swap_disk =
         disk_get(1, 1);  // 스왑디스크 불러오는 함수 - (1,1)이 스왑디스크를 의미
     swap_table =
@@ -40,8 +40,8 @@ bool anon_initializer(struct page *page, enum vm_type type, void *kva)
     page->operations = &anon_ops;
 
     struct anon_page *anon_page = &page->anon;
-    anon_page->swap_table_idx = 0;  // 일단 0으로 초기화
-    anon_page->is_swaped_out = false;
+    // anon_page->swap_table_idx = 0;  // 일단 0으로 초기화
+    // anon_page->is_swaped_out = false;
 }
 
 /* Swap in the page by read contents from the swap disk. */

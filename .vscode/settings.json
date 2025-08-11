@@ -72,6 +72,7 @@
         "bitmap.h": "c",
         "cksum.h": "c",
         "arc4.h": "c",
-        "uninit.h": "c"
+        "uninit.h": "c",
+        "cstdint": "c"
     }
 }
