@@ -372,4 +372,8 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
      * TODO: writeback all the modified contents to the storage. */
     /* TODO: 스레드가 소유한 모든 보조 페이지 테이블을 파괴하고
      * TODO: 수정된 모든 내용을 저장소에 다시 기록하세요. */
+
+     struct thread *curr = thread_current();
+     process_cleanup();
+     hash_clear(&spt->spt_hash, curr);
 }
