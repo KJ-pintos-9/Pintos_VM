@@ -363,6 +363,15 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
     return true;
 }
 
+void hash_destructor(struct hash_elem *e, void *aux){
+    struct page* page = hash_entry(e, struct page, hash_elem);
+
+    if (page != NULL) {
+        destroy(page);// 페이지에 할당된 자원을 해제하는 함수 호출
+        free(page);// 페이지 자체의 동적 메모리 해제
+    }
+}
+
 
 /* Free the resource hold by the supplemental page table */
 /* 보조 페이지 테이블이 소유한 자원을 해제합니다. */
@@ -373,6 +382,6 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
     /* TODO: 스레드가 소유한 모든 보조 페이지 테이블을 파괴하고
      * TODO: 수정된 모든 내용을 저장소에 다시 기록하세요. */
 
-     struct thread *curr = thread_current();
-     hash_clear(&spt->spt_hash, curr);
+    //spt 비우기 hash_clear() 사용
+    hash_clear(&spt->spt_hash, hash_destructor);
 }
