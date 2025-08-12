@@ -24,13 +24,6 @@
 #include "vm/vm.h"
 #endif
 
-struct lazy_load_info
-{
-    struct file *file;    //파일 포인터
-    off_t offset;         //오프셋
-    uint32_t bytes_read;  //읽을 바이트 수
-    uint32_t zero_bytes;  // 나머지 0으로 채울 바이트 수
-};
 
 static void process_cleanup(void);
 // static bool load (const char *file_name, struct intr_frame *if_);
@@ -369,7 +362,9 @@ static void process_cleanup(void)
     struct thread *curr = thread_current();
 
 #ifdef VM
-    supplemental_page_table_kill(&curr->spt);
+    if (!hash_empty(&curr->spt.spt_hash)){
+        supplemental_page_table_kill(&curr->spt);
+    }
 #endif
 
     uint64_t *pml4;
@@ -456,7 +451,7 @@ struct ELF64_PHDR
 #define ELF ELF64_hdr
 #define Phdr ELF64_PHDR
 
-static bool setup_stack(struct intr_frame *if_);
+bool setup_stack(struct intr_frame *if_);
 static bool validate_segment(const struct Phdr *, struct file *);
 static bool load_segment(struct file *file, off_t ofs, uint8_t *upage,
                          uint32_t read_bytes, uint32_t zero_bytes,
@@ -884,7 +879,7 @@ void aux_init(struct lazy_load_info *aux, struct file *file, off_t offset,
 }
 
 /* USER_STACK에 스택의 PAGE를 생성합니다. 성공하면 true를 반환합니다. */
-static bool setup_stack(struct intr_frame *if_)
+bool setup_stack(struct intr_frame *if_)
 {
     uint8_t *kpage;
     bool success = false;
@@ -896,19 +891,16 @@ static bool setup_stack(struct intr_frame *if_)
      * TODO: 페이지가 스택임을 표시해야 합니다. */
     /* TODO: 여기에 코드를 작성하세요 */
 
-    kpage = palloc_get_page(PAL_USER | PAL_ZERO);
-    if (kpage != NULL)
-    {
-        success = (pml4_get_page(t->pml4, stack_bottom) == NULL &&
-                   pml4_set_page(t->pml4, stack_bottom, kpage, true));
-					/* success = (pml4_get_page(t->pml4, stack_bottom) == NULL 
-					&& pml4_set_page(t->pml4, stack_bottom, kpage, true)
-					&& vm_alloc_page(VM_ANON | VM_MARKER_0, setup_stack, true)) */
-        if (success)
-            if_->rsp = USER_STACK;
-        else
-            palloc_free_page(kpage);
-    }
+    //VM_MARKER_0 활용
+    //최초의 스택은 lazy loading 할 필요 없다.
+
+    //stack bottom 위치에 매핑
+    if(success = vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, true)){
+        //페이지 할당
+        success = vm_claim_page(stack_bottom);
+    }else { return false; }
+    
+    if (success) { if_->rsp = USER_STACK; }
 
     return success;
 }
