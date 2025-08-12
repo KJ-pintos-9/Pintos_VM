@@ -27,6 +27,7 @@ enum vm_type
     VM_MARKER_END = (1 << 31),
 };
 
+
 #include "vm/anon.h"
 #include "vm/file.h"
 #include "vm/uninit.h"
@@ -127,4 +128,12 @@ void vm_dealloc_page(struct page *page);
 bool vm_claim_page(void *va);
 enum vm_type page_get_type(struct page *page);
 
+
+struct lazy_load_info
+{
+    struct file *file;    //파일 포인터
+    off_t offset;         //오프셋
+    uint32_t bytes_read;  //읽을 바이트 수
+    uint32_t zero_bytes;  // 나머지 0으로 채울 바이트 수
+};
 #endif /* VM_VM_H */

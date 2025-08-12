@@ -7,6 +7,8 @@
 #include "include/threads/vaddr.h"
 #include "threads/malloc.h"
 #include "vm/inspect.h"
+#include <string.h>
+
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -305,7 +307,7 @@ static bool vm_do_claim_page(struct page *page)
     bool success =
         pml4_set_page(curr->pml4, page->va, frame->kva, page->writable);
     if (!success) return false;
-
+  
     return swap_in(page, frame->kva);
 }
 
@@ -315,6 +317,8 @@ void supplemental_page_table_init(struct supplemental_page_table *spt UNUSED)
 {
     hash_init(&spt->spt_hash, page_hash, page_less, NULL);
 }
+
+
 
 /* Copy supplemental page table from src to dst */
 /* 보조 페이지 테이블을 src에서 dst로 복사합니다. */
@@ -338,8 +342,8 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
         enum vm_type type = page_get_type(src_page);
         bool writable = src_page->writable;
 
-        //TYPE = VM_UNINIT일 경우 따로 처리!
-        if (type == VM_UNINIT){
+        //TYPE == VM_UNINIT일 경우 따로 처리!
+        if (type == VM_UNINIT || src_page->frame == NULL){
 
             // init, aux는 lazy loading을 위해 필요한 함수 포인터와 context 정보이므로,!
             // 자식도 동일한 방식으로 lazy load가 가능하게 하기 위해 그대로 복사해야 함
@@ -347,30 +351,26 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 
             if (!vm_alloc_page_with_initializer(type, va, writable, uninit->init, uninit->aux)) { return false; }
 
-            //type = uninit 이면 즉시 할당 vm_do_claim_page()!
-            if (!vm_do_claim_page(va)) {return false;}
+            //type = uninit 이면 즉시 할당 vm_claim_page()!
+            if (!vm_claim_page(va)) {return false;}
+            continue;
 
-        }else{
-            //anon, file page 처리!
+        }
+        else{
             vm_alloc_page(type, va, writable);
-            if (!vm_do_claim_page(va)) {return false;}
+
+            if (!vm_claim_page(va)) {printf("vm_claim_page false"); return false;}
 
             struct page *dst_page = spt_find_page(dst, va);
 
-            //물리 메모리까지 복사!
+            if(src_page->frame == NULL){
+                printf("src_page->frame == NULL");
+            }
+            //물리 메모리까지 복사
             memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
         }
     }
     return true;
-}
-
-void hash_destructor(struct hash_elem *e, void *aux){
-    struct page* page = hash_entry(e, struct page, hash_elem);
-
-    if (page != NULL) {
-        destroy(page);// 페이지에 할당된 자원을 해제하는 함수 호출
-        free(page);// 페이지 자체의 동적 메모리 해제
-    }
 }
 
 
@@ -382,7 +382,4 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
      * TODO: writeback all the modified contents to the storage. */
     /* TODO: 스레드가 소유한 모든 보조 페이지 테이블을 파괴하고
      * TODO: 수정된 모든 내용을 저장소에 다시 기록하세요. */
-
-    //spt 비우기 hash_clear() 사용
-    hash_clear(&spt->spt_hash, hash_destructor);
 }
