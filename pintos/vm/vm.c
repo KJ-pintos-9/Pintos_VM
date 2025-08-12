@@ -164,6 +164,7 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 
 void spt_remove_page(struct supplemental_page_table *spt, struct page *page)
 {
+    hash_delete(&spt->spt_hash, &page->hash_elem);
     vm_dealloc_page(page);
     return true;
 }
@@ -265,7 +266,9 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
     /* TODO: Your code goes here */
     /* TODO: 여기에 코드를 작성하세요. */
 
-		if (is_kernel_vaddr(addr)) return false;
+    if (!not_present) return false;
+
+	if (is_kernel_vaddr(addr)) return false;
     page = spt_find_page(spt, addr);
 
     // 스택 확장을 식별

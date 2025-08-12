@@ -124,7 +124,7 @@ void do_munmap(void *addr)
 		
 		spt_remove_page(&t->spt, page);
 
-		//pml4_clear_page(t->pml4, pg_round_down(addr));
+		pml4_clear_page(t->pml4, pg_round_down(addr));
 
 		addr += PGSIZE;
 		count--;
