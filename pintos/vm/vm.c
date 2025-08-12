@@ -8,6 +8,7 @@
 #include "threads/malloc.h"
 #include "vm/inspect.h"
 #include <string.h>
+//#include "include/userprog/process.h"
 
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
@@ -69,7 +70,7 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage,
                                     bool writable, vm_initializer *init,
                                     void *aux)
 {
-    ASSERT(VM_TYPE(type) != VM_UNINIT)
+    ASSERT(VM_TYPE(type) != VM_UNINIT);
 
     struct supplemental_page_table *spt = &thread_current()->spt;
 
@@ -357,42 +358,90 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 
     while (hash_next (&i))
     {
-        //spt 안 page 정보를 복사해야 하므로 page 생성
-        struct page *src_page = hash_entry (hash_cur (&i), struct page, hash_elem);
+        struct page *src_page = hash_entry(hash_cur(&i), struct page, hash_elem);
 
-        //va, type, writable, 변수 생성 후 초기화
-        void *va = src_page->va;
-        enum vm_type type = src_page->operations->type;
-        bool writable = src_page->writable;
+        // 1. 새로운 uninit page 하나 세팅하기
+        // if (!vm_alloc_page(page_get_type(src_page), src_page->va, src_page->writable)){
+        //     return false;
+        // }
 
-        //TYPE == VM_UNINIT일 경우 따로 처리!
-        if (type == VM_UNINIT || src_page->frame == NULL){
+        // struct page *dst_page = spt_find_page(dst, src_page->va);
 
-            // init, aux는 lazy loading을 위해 필요한 함수 포인터와 context 정보이므로,!
-            // 자식도 동일한 방식으로 lazy load가 가능하게 하기 위해 그대로 복사해야 함
-            struct uninit_page *uninit = &src_page->uninit;
+        // // 2. frame이 설정되어있었으면,
+        // if (page->frame != NULL) {
+        //     // 3. vm_claim_page해서 frame 하나 받아오고
+        //     if (!vm_claim_page(new_page->va)) {
+        //         return false;
+        //     }
+        //     // 4. frame 내부의 내용 채워넣기
+        //     memcpy(new_page->frame->kva, page->frame->kva,PGSIZE);
+        // }
 
-            if (!vm_alloc_page_with_initializer(type, va, writable, uninit->init, uninit->aux)) { return false; }
+        //case 1 바로 setup_stack 최초의 uninit page
+        //비트 마커 활용
+        // if (src_page->uninit.type & VM_MARKER_0){
+        //     setup_stack(thread_current()->tf);
+        // }
 
-            //type = uninit 이면 즉시 할당 vm_claim_page()!
-            //if (!vm_claim_page(va)) {return false;}
-            //continue;
-
-        }
-        else{
-            vm_alloc_page(type, va, writable);
-
-            if (!vm_claim_page(va)) {printf("vm_claim_page false"); return false;}
-
-            struct page *dst_page = spt_find_page(dst, va);
-
-            if(src_page->frame == NULL){
-                printf("src_page->frame == NULL");
+        // //case 2 uninit page
+        if ( src_page->operations->type == VM_UNINIT){
+            if(!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, src_page->uninit.init, src_page->uninit.aux)){
+                return false;
             }
-            //물리 메모리까지 복사
+        }else{
+            //case 3 anon, file page 
+
+            if(! vm_alloc_page(page_get_type(src_page), src_page->va, src_page->writable)){
+                return false;
+            }
+
+            if(src_page->frame != NULL){
+                if(!vm_claim_page(src_page->va)){
+                    return false;
+                }
+            }
+        }
+        if(src_page->operations->type != VM_UNINIT){
+            struct page *dst_page = spt_find_page(dst, src_page->va);
             memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
         }
-    }
+
+    //     //spt 안 page 정보를 복사해야 하므로 page 생성
+    //     struct page *src_page = hash_entry (hash_cur (&i), struct page, hash_elem);
+
+    //     //va, type, writable, 변수 생성 후 초기화
+    //     void *va = src_page->va;
+    //     enum vm_type type = src_page->operations->type;
+    //     bool writable = src_page->writable;
+
+    //     //TYPE == VM_UNINIT일 경우 따로 처리!
+    //     if (type == VM_UNINIT){
+
+    //         // init, aux는 lazy loading을 위해 필요한 함수 포인터와 context 정보이므로,!
+    //         // 자식도 동일한 방식으로 lazy load가 가능하게 하기 위해 그대로 복사해야 함
+    //         struct uninit_page *uninit = &src_page->uninit;
+
+    //         if (!vm_alloc_page_with_initializer(type, va, writable, uninit->init, uninit->aux)) { return false; }
+
+    //         //type = uninit 이면 즉시 할당 vm_claim_page()!
+    //         //if (!vm_claim_page(va)) {return false;}
+    //         //continue;
+
+    //     }
+    //     else{
+    //         vm_alloc_page(type, va, writable);
+
+    //         if (!vm_claim_page(va)) {printf("vm_claim_page false"); return false;}
+
+    //         struct page *dst_page = spt_find_page(dst, va);
+
+    //         if(src_page->frame == NULL){
+    //             printf("src_page->frame == NULL");
+    //         }
+    //         //물리 메모리까지 복사
+    //         memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
+    //     }
+     }
     return true;
 }
 
