@@ -73,6 +73,8 @@
         "cksum.h": "c",
         "arc4.h": "c",
         "uninit.h": "c",
-        "cstdint": "c"
+        "cstdint": "c",
+        "chrono": "c",
+        "ratio": "c"
     }
 }

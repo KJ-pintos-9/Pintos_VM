@@ -35,6 +35,11 @@ bool file_backed_initializer(struct page *page, enum vm_type type, void *kva)
 static bool file_backed_swap_in(struct page *page, void *kva)
 {
     struct file_page *file_page UNUSED = &page->file;
+		file_seek(page->file.file, page->file.offset);
+		if (file_read(page->file.file, kva, page->file.bytes_read) == page->file.bytes_read)
+			return false;
+
+		return true;
 }
 
 /* Swap out the page by writeback contents to the file. */
@@ -68,11 +73,16 @@ do_mmap (struct page *page, void *aux)
 {
 	struct mmap_page_info *info = (struct mmap_page_info *) aux;
 
-	/* struct file_page에 정보 넣어주기 */
-	page->file.file = info->file;
-	page->file.offset = info->offset;
-	page->file.bytes_read = info->bytes_read;
-	page->file.zero_bytes = info->zero_bytes;
+	page->is_mmap_called = info->is_mmap_called;
+	page->mmaped_pages_count = info->mmaped_pages_count;
+
+	if (page_get_type(page) == VM_FILE) {
+		/* struct file_page에 정보 넣어주기 */
+		page->file.file = info->file;
+		page->file.offset = info->offset;
+		page->file.bytes_read = info->bytes_read;
+		page->file.zero_bytes = info->zero_bytes;
+	}
 
 	uint8_t *kva = page->frame->kva;
 
@@ -102,10 +112,22 @@ void do_munmap(void *addr)
 	struct page *page;
 	struct thread *t = thread_current();
 	
-	if ((page = spt_find_page(&t->spt, addr)) == NULL) exit(-1);
+	//if ((page = spt_find_page(&t->spt, addr)) == NULL) exit(-1);
+	if (!(page = spt_find_page(&t->spt, addr))->is_mmap_called)
+		exit(-1);
 
-	spt_remove_page(&t->spt, page);
+	int count = page->mmaped_pages_count;
 
-	pml4_clear_page(t->pml4, addr);
+	while (count) {
+		if ((page = spt_find_page(&t->spt, pg_round_down(addr))) == NULL)
+			exit(-1);
+		
+		spt_remove_page(&t->spt, page);
+
+		//pml4_clear_page(t->pml4, pg_round_down(addr));
+
+		addr += PGSIZE;
+		count--;
+	}
 
 }
