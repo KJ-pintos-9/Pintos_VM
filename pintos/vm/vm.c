@@ -234,6 +234,16 @@ static struct frame *vm_get_frame(void)
 /* 스택을 확장합니다. */
 static void vm_stack_growth(void *addr UNUSED)
 {
+    void *page_start = pg_round_down(addr);
+
+    // 페이지 구조 할당
+    // SPT에 스택 페이지(anonymous) 등록
+    if (!vm_alloc_page_with_initializer(VM_ANON | VM_MARKER_0, page_start, true,
+                                        NULL, NULL))
+        return;
+
+    // va에 대해 페이지를 할당 (물리 메모리 확보)
+    vm_claim_page(page_start);
 }
 
 /* Handle the fault on write_protected page */
@@ -256,8 +266,21 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
     /* TODO: 여기에 코드를 작성하세요. */
 
 		if (is_kernel_vaddr(addr)) return false;
+    page = spt_find_page(spt, addr);
 
-		if ((page = spt_find_page(spt, addr)) == NULL) return false;
+    // 스택 확장을 식별
+    // addr >= f->rsp - 8 : 페이지 폴트가 발생한 주소가 스택 포인터와 충분히
+    // 가까워 스택 확장 요청으로 간주될 수 있는지를 판단하는 임계값
+    if (page == NULL)
+    {
+        if (not_present && is_user_vaddr(addr) && addr >= f->rsp - 8 &&
+            addr <= USER_STACK)
+        {
+            vm_stack_growth(addr);
+            return true;
+        }
+        return false;
+    }
 
     return vm_do_claim_page(page);
 }
