@@ -362,7 +362,7 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 
         //va, type, writable, 변수 생성 후 초기화
         void *va = src_page->va;
-        enum vm_type type = page_get_type(src_page);
+        enum vm_type type = src_page->operations->type;
         bool writable = src_page->writable;
 
         //TYPE == VM_UNINIT일 경우 따로 처리!
@@ -375,8 +375,8 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
             if (!vm_alloc_page_with_initializer(type, va, writable, uninit->init, uninit->aux)) { return false; }
 
             //type = uninit 이면 즉시 할당 vm_claim_page()!
-            if (!vm_claim_page(va)) {return false;}
-            continue;
+            //if (!vm_claim_page(va)) {return false;}
+            //continue;
 
         }
         else{
