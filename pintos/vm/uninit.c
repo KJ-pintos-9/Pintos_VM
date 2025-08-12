@@ -9,6 +9,7 @@
  * */
 
 #include "vm/vm.h"
+#include "vm/uninit.h"
 
 #include "vm/uninit.h"
 
@@ -30,15 +31,15 @@ void uninit_new(struct page *page, void *va, vm_initializer *init,
 {
     ASSERT(page != NULL);
 
-    *page = (struct page){.operations = &uninit_ops,
-                          .va = va,
-                          .frame = NULL, /* no frame for now */
-                          .uninit = (struct uninit_page){
-                              .init = init,
-                              .type = type,
-                              .aux = aux,
-                              .page_initializer = initializer,
-                          }};
+    *page = (struct page) {.operations = &uninit_ops,
+                           .va = va,
+                           .frame = NULL, /* no frame for now */
+                           .uninit = (struct uninit_page) {
+                               .init = init,
+                               .type = type,
+                               .aux = aux,
+                               .page_initializer = initializer,
+                           }};
 }
 
 /* Initalize the page on first fault */

@@ -20,7 +20,7 @@ SpaceBeforeParens: ControlStatements # 제어문(if, for, while)의 괄호 앞�
 SpacesInParentheses: false        # 괄호 안쪽에는 공백을 넣지 않음
 
 # --- 코드 정렬 및 순서 ---
-# SortIncludes: true                # include 구문을 알파벳 순으로 자동 정렬
+SortIncludes: false                # include 구문을 알파벳 순으로 자동 정렬
 # AlignTrailingComments: true       # 줄 끝에 오는 주석들을 세로로 정렬
 
 # --- C++11 이상 기능 호환성 (C언어 프로젝트에서도 호환) ---
