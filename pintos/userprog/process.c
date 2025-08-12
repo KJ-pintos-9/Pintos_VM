@@ -900,7 +900,8 @@ static bool setup_stack(struct intr_frame *if_)
     if (kpage != NULL)
     {
         success = (pml4_get_page(t->pml4, stack_bottom) == NULL &&
-                   pml4_set_page(t->pml4, stack_bottom, kpage, true));
+                   pml4_set_page(t->pml4, stack_bottom, kpage, true) &&
+                    vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, true));
 					/* success = (pml4_get_page(t->pml4, stack_bottom) == NULL 
 					&& pml4_set_page(t->pml4, stack_bottom, kpage, true)
 					&& vm_alloc_page(VM_ANON | VM_MARKER_0, setup_stack, true)) */
