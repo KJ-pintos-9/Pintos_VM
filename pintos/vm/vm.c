@@ -212,6 +212,7 @@ static struct frame *vm_get_frame(void)
     if (kva == NULL)
     {
         PANIC("todo");
+        //vm_evict_frame();
     }
 
     // 프레임 할당
