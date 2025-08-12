@@ -28,7 +28,7 @@ page-shuffle PASS
 exec-missing PASS
 exec-arg FAIL
 page-merge-mm FAIL
-read-bad-ptr PASS
+read-bad-ptr FAIL
 create-long PASS
 mmap-read PASS
 mmap-remove PASS
@@ -48,9 +48,9 @@ rox-child FAIL
 page-merge-par FAIL
 mmap-write FAIL
 alarm-single PASS
-lazy-file FAIL
+lazy-file PASS
 pt-bad-addr PASS
-read-normal FAIL
+read-normal PASS
 lazy-anon PASS
 pt-write-code2 FAIL
 mmap-over-stk FAIL
@@ -84,7 +84,7 @@ read-boundary PASS
 wait-twice FAIL
 exec-boundary FAIL
 close-normal PASS
-mmap-ro FAIL
+mmap-ro PASS
 sm-create PASS
 halt PASS
 write-bad-fd PASS
@@ -109,7 +109,7 @@ priority-change PASS
 write-boundary PASS
 wait-killed FAIL
 lg-full PASS
-swap-file FAIL
+swap-file PASS
 close-bad-fd PASS
 alarm-negative PASS
 multi-child-fd FAIL

@@ -222,7 +222,7 @@ int read(int fd, const void *buffer, unsigned length)
     if (fd == 0) return input_getc();
 
     //if (pml4_get_page(t->pml4, buffer) == NULL) exit(-1);
-		if (spt_find_page(&t->spt, buffer) == NULL) exit(-1);
+		//if (spt_find_page(&t->spt, buffer) == NULL) exit(-1);
 
     if (fd > 2)
     {
@@ -317,6 +317,13 @@ void *mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 		aux->offset = offset;
 		aux->bytes_read = page_read_bytes;
 		aux->zero_bytes = page_zero_bytes;
+		aux->is_mmap_called = false;
+		aux->mmaped_pages_count = 0;
+
+		if (addr == initial_addr) {
+			aux->is_mmap_called = true;
+			aux->mmaped_pages_count = ROUND_UP(length, PGSIZE) / PGSIZE;
+		}
 
 		if (page_read_bytes)
 		{
@@ -329,13 +336,10 @@ void *mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 				return NULL;
 		}
 
-
-
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
 		addr += PGSIZE;
 		offset += page_read_bytes;
-
 	}	
 
 	return initial_addr;

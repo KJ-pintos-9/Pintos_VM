@@ -9,6 +9,8 @@ struct mmap_page_info
 	off_t offset;
 	uint32_t bytes_read;
 	uint32_t zero_bytes;
+	bool is_mmap_called;
+	int mmaped_pages_count;
 };
 
 #endif /* userprog/syscall.h */
