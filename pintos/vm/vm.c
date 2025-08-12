@@ -265,6 +265,8 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
     /* TODO: Your code goes here */
     /* TODO: 여기에 코드를 작성하세요. */
 
+    if (!not_present) return false;
+
 		if (is_kernel_vaddr(addr)) return false;
     page = spt_find_page(spt, addr);
 
