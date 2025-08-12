@@ -142,12 +142,15 @@ page_fault (struct intr_frame *f) {
 	if (user) exit(-1);
 	else {
 		/* 폴트가 실제 폴트라면, 정보를 보여주고 종료합니다. */
-		printf ("Page fault at %p: %s error %s page in %s context.\n",
-				fault_addr,
-				not_present ? "not present" : "rights violation",
-				write ? "writing" : "reading",
-				user ? "user" : "kernel");
-		kill (f);
+		// printf ("Page fault at %p: %s error %s page in %s context.\n",
+		// 		fault_addr,
+		// 		not_present ? "not present" : "rights violation",
+		// 		write ? "writing" : "reading",
+		// 		user ? "user" : "kernel");
+		// kill (f);
+		f->R.rax = -1;
+		f->rip = f->rip + 1;
+		return;
 	}
 }
 

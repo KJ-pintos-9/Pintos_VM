@@ -24,6 +24,9 @@
 
 void syscall_entry(void);
 void syscall_handler(struct intr_frame *);
+void check_address(void *addr);
+static int64_t get_user (const uint8_t *uaddr);
+static bool put_user (uint8_t *udst, uint8_t byte);
 
 static struct lock filesys_lock;
 
@@ -118,10 +121,12 @@ int exec(const char *cmd_line)
 {
     struct thread *t = thread_current();
 
-    if (cmd_line == NULL) exit(-1);
+    //if (cmd_line == NULL) exit(-1);
 
     //if (pml4_get_page(t->pml4, cmd_line) == NULL) exit(-1);
-		if (spt_find_page(&t->spt, cmd_line) == NULL) exit(-1);
+	//if (spt_find_page(&t->spt, cmd_line) == NULL) exit(-1);
+
+    check_address(cmd_line);
 
     char *cmd_line_copy = palloc_get_page(
         0);  // cmd_line 그냥넣으면 로드할 때 그 주소로 액세스 불가능해서 터짐
@@ -139,10 +144,12 @@ bool create(const char *file, unsigned initial_size)
 {
     struct thread *t = thread_current();
 
-    if (file == NULL) exit(-1);
+    //if (file == NULL) exit(-1);
 
     //if (pml4_get_page(t->pml4, file) == NULL) exit(-1);
-		if (spt_find_page(&t->spt, file) == NULL) exit(-1);
+	//if (spt_find_page(&t->spt, file) == NULL) exit(-1);
+
+    check_address(file);
 
     if (strlen(file) == 0) return false;
 
@@ -153,10 +160,12 @@ bool remove(const char *file)
 {
     struct thread *t = thread_current();
 
-    if (file == NULL) exit(-1);
+    //if (file == NULL) exit(-1);
 
     //if (pml4_get_page(t->pml4, file) == NULL) exit(-1);
-		if (spt_find_page(&t->spt, file) == NULL) exit(-1);
+		//if (spt_find_page(&t->spt, file) == NULL) exit(-1);
+
+    check_address(file);
 
     return filesys_remove(file);
 }
@@ -166,10 +175,12 @@ int open(const char *file)
     struct thread *t = thread_current();
     int fd = 0;
 
-    if (file == NULL) exit(-1);
+    //if (file == NULL) exit(-1);
 
     //if (pml4_get_page(t->pml4, file) == NULL) exit(-1);
-		if (spt_find_page(&t->spt, file) == NULL) exit(-1);
+	//if (spt_find_page(&t->spt, file) == NULL) exit(-1);
+
+    check_address(file);
 
     if (strlen(file) == 0) return -1;
 
@@ -217,12 +228,14 @@ int read(int fd, const void *buffer, unsigned length)
     struct thread *t = thread_current();
     struct file *read_file;
 
-    if (fd < 0 || fd > 127 || length == 0 || buffer == NULL) return 0;
+    check_address(buffer);
+
+    if (fd < 0 || fd > 127 || length == 0) return 0;
 
     if (fd == 0) return input_getc();
 
     //if (pml4_get_page(t->pml4, buffer) == NULL) exit(-1);
-		//if (spt_find_page(&t->spt, buffer) == NULL) exit(-1);
+	//if (spt_find_page(&t->spt, buffer) == NULL) exit(-1);
 
     if (fd > 2)
     {
@@ -237,7 +250,9 @@ int write(int fd, const void *buffer, unsigned length)
     struct thread *t = thread_current();
     struct file *write_file;
 
-    if (fd <= 0 || fd > 127 || length == 0 || buffer == NULL) return 0;
+    check_address(buffer);
+
+    if (fd <= 0 || fd > 127 || length == 0) return 0;
 
     if (fd == 1)
     {
@@ -248,7 +263,7 @@ int write(int fd, const void *buffer, unsigned length)
     }
 
     //if (pml4_get_page(t->pml4, buffer) == NULL) exit(-1);
-			if (spt_find_page(&t->spt, buffer) == NULL) exit(-1);
+	//if (spt_find_page(&t->spt, buffer) == NULL) exit(-1);
 
     if (fd > 2)
     {
@@ -426,4 +441,40 @@ void syscall_handler(struct intr_frame *f UNUSED)
     }
 
     // thread_exit ();
+}
+
+void check_address(void *addr) {
+    if (addr == NULL || is_kernel_vaddr(addr))
+        exit(-1);
+    if (get_user(addr) == -1)
+        exit(-1);
+
+}
+
+/* 사용자 가상 주소 UADDR에서 바이트를 읽습니다.
+ * UADDR은 반드시 KERN_BASE보다 작아야 합니다.
+ * 성공 시 해당 바이트 값을 반환하고, 세그멘테이션 폴트가 발생하면 -1을 반환합니다. */
+static int64_t
+get_user (const uint8_t *uaddr) {
+    int64_t result;
+    __asm __volatile (
+    "movabsq $done_get, %0\n"
+    "movzbq %1, %0\n"
+    "done_get:\n"
+    : "=&a" (result) : "m" (*uaddr));
+    return result;
+}
+
+/* BYTE 값을 사용자 주소 UDST에 씁니다.
+ * UDST는 반드시 KERN_BASE보다 작아야 합니다.
+ * 성공하면 true, 세그멘테이션 폴트 발생 시 false 반환 */
+static bool
+put_user (uint8_t *udst, uint8_t byte) {
+    int64_t error_code;
+    __asm __volatile (
+    "movabsq $done_put, %0\n"
+    "movb %b2, %1\n"
+    "done_put:\n"
+    : "=&a" (error_code), "=m" (*udst) : "q" (byte));
+    return error_code != -1;
 }
