@@ -276,7 +276,7 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
     // 가까워 스택 확장 요청으로 간주될 수 있는지를 판단하는 임계값
     if (page == NULL)
     {
-        if (not_present && is_user_vaddr(addr) && addr >= f->rsp - 8 &&
+        if (not_present && is_user_vaddr(addr) && addr <= f->rsp - 8 &&
             addr <= USER_STACK)
         {
             vm_stack_growth(addr);

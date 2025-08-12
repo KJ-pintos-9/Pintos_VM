@@ -61,7 +61,7 @@ static void file_backed_destroy(struct page *page)
 		struct thread *t = thread_current();
 
 		if (pml4_is_dirty(t->pml4, page->va)) swap_out(page);
-		file_close(page->file.file);
+		//file_close(page->file.file);
 		
 
 }
