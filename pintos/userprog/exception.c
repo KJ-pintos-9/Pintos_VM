@@ -117,6 +117,10 @@ page_fault (struct intr_frame *f) {
 	   이것은 코드나 데이터를 가리킬 수 있습니다. 이것이 반드시 폴트를 발생시킨
 	   명령어의 주소는 아닙니다 (그것은 f->rip입니다). */
 
+if (user)
+    {
+        thread_current()->user_rsp = f->rsp;
+    }
 
 	fault_addr = (void *) rcr2();
 

@@ -227,8 +227,14 @@ int read(int fd, const void *buffer, unsigned length)
 {
     struct thread *t = thread_current();
     struct file *read_file;
+struct page *page;
 
     check_address(buffer);
+
+    if (page = spt_find_page(&t->spt, buffer))
+    {
+        if (!page->writable) exit(-1);
+    }
 
     if (fd < 0 || fd > 127 || length == 0) return 0;
 
@@ -373,6 +379,11 @@ void syscall_handler(struct intr_frame *f UNUSED)
     uint64_t sys_num = f->R.rax;  // 시스템 콜 번호 가져오기
     char *file;
     int fd;
+
+#ifdef VM
+    thread_current()->user_rsp = f->rsp;
+#endif
+
     /* f에서 전달 받은 argument들을 가져온다. */
     switch (sys_num)
     {

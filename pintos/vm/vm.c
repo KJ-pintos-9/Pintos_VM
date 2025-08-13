@@ -265,18 +265,24 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
     /* TODO: Your code goes here */
     /* TODO: 여기에 코드를 작성하세요. */
 
+// 이미 물리 메모리에 매핑되어 있는데도 폴트가 발생한 경우
     if (!not_present) return false;
 
 		if (is_kernel_vaddr(addr)) return false;
+
+    // SPT에서 addr에 해당하는 struct page를 찾음
     page = spt_find_page(spt, addr);
 
+// page == NULL : 아직 메모리에 로드되지 않았거나 스택처럼 새로 할당되어야
+    // 하는 영역임
     // 스택 확장을 식별
-    // addr >= f->rsp - 8 : 페이지 폴트가 발생한 주소가 스택 포인터와 충분히
-    // 가까워 스택 확장 요청으로 간주될 수 있는지를 판단하는 임계값
+    // addr >= f->rsp - 8 : 페이지 폴트가 발생한
+    // 주소가 스택 포인터와 충분히 가까워 스택 확장 요청으로 간주될 수 있는지를
+    // 판단하는 임계값
     if (page == NULL)
     {
-        if (not_present && is_user_vaddr(addr) && addr >= f->rsp - 8 &&
-            addr <= USER_STACK)
+        if (not_present && is_user_vaddr(addr) &&
+            addr >= thread_current()->user_rsp - 8 && addr <= USER_STACK)
         {
             vm_stack_growth(addr);
             return true;
