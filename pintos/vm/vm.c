@@ -164,6 +164,7 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 
 void spt_remove_page(struct supplemental_page_table *spt, struct page *page)
 {
+    hash_delete(&spt->spt_hash, &page->hash_elem);
     vm_dealloc_page(page);
     return true;
 }
@@ -265,12 +266,14 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
     /* TODO: Your code goes here */
     /* TODO: 여기에 코드를 작성하세요. */
 
+
 // 이미 물리 메모리에 매핑되어 있는데도 폴트가 발생한 경우
     if (!not_present) return false;
 
 		if (is_kernel_vaddr(addr)) return false;
 
     // SPT에서 addr에 해당하는 struct page를 찾음
+
     page = spt_find_page(spt, addr);
 
 // page == NULL : 아직 메모리에 로드되지 않았거나 스택처럼 새로 할당되어야

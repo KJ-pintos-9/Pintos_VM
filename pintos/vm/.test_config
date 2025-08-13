@@ -115,11 +115,11 @@ mmap-off | --fs-disk=10 -p tests/vm/mmap-off:mmap-off -p ../../tests/vm/large.tx
 mmap-bad-off | --fs-disk=10 -p tests/vm/mmap-bad-off:mmap-bad-off -p ../../tests/vm/large.txt:large.txt --swap-disk=4 | -q   -f run | 'mmap-bad-off' | tests/vm
 mmap-kernel | --fs-disk=10 -p tests/vm/mmap-kernel:mmap-kernel -p ../../tests/vm/sample.txt:sample.txt --swap-disk=4 | -q   -f run | 'mmap-kernel' | tests/vm
 lazy-file | --fs-disk=10 -p tests/vm/lazy-file:lazy-file -p ../../tests/vm/sample.txt:sample.txt -p ../../tests/vm/small.txt:small.txt --swap-disk=4 | -q   -f run | 'lazy-file' | tests/vm
-lazy-anon | --fs-disk=10 -p tests/vm/lazy-anon:lazy-anon --swap-disk=4 | -q   -f run | 'lazy-anon' | tests/vm
-swap-file | --fs-disk=10 -p tests/vm/swap-file:swap-file -p ../../tests/vm/large.txt:large.txt --swap-disk=10 | -q   -f run | 'swap-file' | tests/vm
-swap-anon | --fs-disk=10 -p tests/vm/swap-anon:swap-anon --swap-disk=30 | -q   -f run | 'swap-anon' | tests/vm
-swap-iter | --fs-disk=10 -p tests/vm/swap-iter:swap-iter -p ../../tests/vm/large.txt:large.txt --swap-disk=50 | -q   -f run | 'swap-iter' | tests/vm
-swap-fork | --fs-disk=10 -p tests/vm/swap-fork:swap-fork -p tests/vm/child-swap:child-swap --swap-disk=200 | -q   -f run | 'swap-fork' | tests/vm
+lazy-anon | -m 20 --fs-disk=10 -p tests/vm/lazy-anon:lazy-anon --swap-disk=4 | -q   -f run | 'lazy-anon' | tests/vm
+swap-file | -m 8 --fs-disk=10 -p tests/vm/swap-file:swap-file -p ../../tests/vm/large.txt:large.txt --swap-disk=10 | -q   -f run | 'swap-file' | tests/vm
+swap-anon | -m 10 --fs-disk=10 -p tests/vm/swap-anon:swap-anon --swap-disk=30 | -q   -f run | 'swap-anon' | tests/vm
+swap-iter | -m 10 --fs-disk=10 -p tests/vm/swap-iter:swap-iter -p ../../tests/vm/large.txt:large.txt --swap-disk=50 | -q   -f run | 'swap-iter' | tests/vm
+swap-fork | -m 40 --fs-disk=10 -p tests/vm/swap-fork:swap-fork -p tests/vm/child-swap:child-swap --swap-disk=200 | -q   -f run | 'swap-fork' | tests/vm
 
 [filesys/base]
 lg-create | --fs-disk=10 -p tests/filesys/base/lg-create:lg-create --swap-disk=4 | -q   -f run | 'lg-create' | tests/filesys/base

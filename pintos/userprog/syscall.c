@@ -227,13 +227,14 @@ int read(int fd, const void *buffer, unsigned length)
 {
     struct thread *t = thread_current();
     struct file *read_file;
-struct page *page;
+    struct page *page;
 
     check_address(buffer);
 
-    if (page = spt_find_page(&t->spt, buffer))
-    {
-        if (!page->writable) exit(-1);
+    if (page = spt_find_page(&t->spt, buffer)) {
+        if (!page->writable)
+            exit(-1);
+
     }
 
     if (fd < 0 || fd > 127 || length == 0) return 0;
@@ -255,8 +256,14 @@ int write(int fd, const void *buffer, unsigned length)
 {
     struct thread *t = thread_current();
     struct file *write_file;
+    struct page *page;
 
     check_address(buffer);
+
+    // if (page = spt_find_page(&t->spt, buffer)) {
+    //     if (!page->writable)
+    //         exit(-1);
+    // }
 
     if (fd <= 0 || fd > 127 || length == 0) return 0;
 
@@ -305,7 +312,7 @@ void *mmap(void *addr, size_t length, int writable, int fd, off_t offset)
 {
   struct thread *t = thread_current();
 
-  if (addr == 0 || is_kernel_vaddr(addr) || length == 0 || fd < 0 || fd > 127 || t->fdt[fd]->entry == NULL) return NULL;
+  if (addr == 0 || is_kernel_vaddr(addr) || length == 0 || fd < 0 || fd > 127 || offset % PGSIZE || t->fdt[fd]->entry == NULL) return NULL;
 
 	if (pg_ofs(addr) != 0)
 		return NULL;
@@ -455,10 +462,17 @@ void syscall_handler(struct intr_frame *f UNUSED)
 }
 
 void check_address(void *addr) {
+    struct thread *t = thread_current();
+    struct page *page;
+
     if (addr == NULL || is_kernel_vaddr(addr))
         exit(-1);
     if (get_user(addr) == -1)
         exit(-1);
+    // if (page = spt_find_page(&t->spt, addr)) {
+    //     if (!page->writable)
+    //         exit(-1);
+    // }
 
 }
 
