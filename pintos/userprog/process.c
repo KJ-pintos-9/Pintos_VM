@@ -242,6 +242,7 @@ error:
  * 실패 시 -1을 반환합니다. */
 int process_exec(void *f_name)
 {
+    struct thread *t = thread_current();
     char *file_name = f_name;
     bool success;
     int kb = 1024 * 4;
@@ -259,6 +260,9 @@ int process_exec(void *f_name)
 
     /* 먼저 현재 컨텍스트를 종료합니다 */
     process_cleanup();
+
+    if (t->spt.spt_hash.buckets == NULL)
+        supplemental_page_table_init(&t->spt);
 
     /* 그리고 바이너리를 로드합니다 */
     success = load(file_name, &_if);
@@ -369,7 +373,8 @@ static void process_cleanup(void)
     struct thread *curr = thread_current();
 
 #ifdef VM
-    supplemental_page_table_kill(&curr->spt);
+    if (!hash_empty(&curr->spt.spt_hash))
+        supplemental_page_table_kill(&curr->spt);
 #endif
 
     uint64_t *pml4;

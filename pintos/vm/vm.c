@@ -421,6 +421,11 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
     return true;
 }
 
+void hash_destructor(struct hash_elem *e, void *aux){
+    struct page *page = hash_entry(e, struct page, hash_elem);
+    free(page);
+}
+
 /* Free the resource hold by the supplemental page table */
 /* 보조 페이지 테이블이 소유한 자원을 해제합니다. */
 void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
@@ -429,4 +434,18 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
      * TODO: writeback all the modified contents to the storage. */
     /* TODO: 스레드가 소유한 모든 보조 페이지 테이블을 파괴하고
      * TODO: 수정된 모든 내용을 저장소에 다시 기록하세요. */
+
+    // struct hash_iterator i;
+
+    // hash_first (&i, &spt->spt_hash);
+
+    // while (hash_next (&i))
+    // {
+    //     struct page *page = hash_entry(hash_cur(&i), struct page, hash_elem);
+    //     if (page->operations->type == VM_FILE){
+    //         do_munmap(page->va);
+    //     }
+    // }
+    hash_destroy(&spt->spt_hash, hash_destructor);
+    spt->spt_hash.buckets = NULL; // 이걸 통해서 다시 spt_init() 해줘야하는 상황인지 판단 가능
 }
