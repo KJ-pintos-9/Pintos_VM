@@ -27,8 +27,7 @@ void syscall_handler(struct intr_frame *);
 void check_address(void *addr);
 static int64_t get_user (const uint8_t *uaddr);
 static bool put_user (uint8_t *udst, uint8_t byte);
-
-static struct lock filesys_lock;
+struct lock filesys_lock;
 
 /* 시스템 콜.
  *
@@ -153,7 +152,11 @@ bool create(const char *file, unsigned initial_size)
 
     if (strlen(file) == 0) return false;
 
-    return filesys_create(file, initial_size);
+    lock_acquire(&filesys_lock);
+    bool result = filesys_create(file, initial_size);
+    lock_release(&filesys_lock);
+
+    return result;
 }
 
 bool remove(const char *file)
@@ -167,7 +170,11 @@ bool remove(const char *file)
 
     check_address(file);
 
-    return filesys_remove(file);
+    lock_acquire(&filesys_lock);
+    bool result = filesys_remove(file);
+    lock_release(&filesys_lock);
+
+    return result;
 }
 
 int open(const char *file)
@@ -184,7 +191,9 @@ int open(const char *file)
 
     if (strlen(file) == 0) return -1;
 
+    lock_acquire(&filesys_lock);
     struct file *opened_file = filesys_open(file);
+    lock_release(&filesys_lock);
 
     if (opened_file == NULL) return -1;
 
@@ -247,7 +256,12 @@ int read(int fd, const void *buffer, unsigned length)
     {
         if (t->fdt[fd] == NULL) return 0;
         read_file = t->fdt[fd]->entry;
-        return file_read(read_file, buffer, length);
+
+        lock_acquire(&filesys_lock);
+        off_t result = file_read(read_file, buffer, length);
+        lock_release(&filesys_lock);
+
+        return result;
     }
 }
 
@@ -281,7 +295,12 @@ int write(int fd, const void *buffer, unsigned length)
     {
         if (t->fdt[fd] == NULL) return 0;
         write_file = t->fdt[fd]->entry;
-        return file_write(write_file, buffer, length);
+
+        lock_acquire(&filesys_lock);
+        off_t result = file_write(write_file, buffer, length);
+        lock_release(&filesys_lock);
+
+        return result;
     }
 }
 

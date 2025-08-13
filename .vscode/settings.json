@@ -75,6 +75,7 @@
         "uninit.h": "c",
         "cstdint": "c",
         "chrono": "c",
-        "ratio": "c"
+        "ratio": "c",
+        "parallel-merge.h": "c"
     }
 }

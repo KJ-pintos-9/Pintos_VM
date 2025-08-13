@@ -3,6 +3,7 @@
 
 void syscall_init(void);
 
+extern struct lock filesys_lock;
 struct mmap_page_info 
 {
 	struct file *file;

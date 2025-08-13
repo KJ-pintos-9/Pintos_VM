@@ -20,6 +20,7 @@
 #include "threads/vaddr.h"
 #include "userprog/gdt.h"
 #include "userprog/tss.h"
+#include "userprog/syscall.h"
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -265,7 +266,10 @@ int process_exec(void *f_name)
         supplemental_page_table_init(&t->spt);
 
     /* 그리고 바이너리를 로드합니다 */
+    lock_acquire(&filesys_lock);
     success = load(file_name, &_if);
+    lock_release(&filesys_lock);
+
     // hex_dump(_if.rsp, _if.rsp, USER_STACK - (uint64_t)_if.rsp, true);
     /* 로드가 실패하면 종료합니다. */
     palloc_free_page(file_name);

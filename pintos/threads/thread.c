@@ -348,15 +348,16 @@ void thread_exit(void)
 
     list_remove(&t->child_elem);
 
-    free(t->waiting_lock);
+    // free(t->waiting_lock);
 
-    for (int i = 0; i < 128; i++)
-    {
-        if (t->fdt[i] != NULL) free(t->fdt[i]);
-    }
+    // for (int i = 0; i < 128; i++)
+    // {
+    //     if (t->fdt[i] != NULL) free(t->fdt[i]);
+    // }
 
-    free(t->fdt);
-    free(t->exec_file);
+    // free(t->fdt);
+    //free(t->exec_file);
+    //free(&t->spt);
 
     intr_disable();
     do_schedule(THREAD_DYING);
