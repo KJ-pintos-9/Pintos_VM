@@ -212,6 +212,7 @@ static struct frame *vm_get_frame(void)
     if (kva == NULL)
     {
         PANIC("todo");
+        //vm_evict_frame();
     }
 
     // 프레임 할당
@@ -266,24 +267,53 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
     /* TODO: Your code goes here */
     /* TODO: 여기에 코드를 작성하세요. */
 
+    // if (!not_present) return false;
+
+	// if (is_kernel_vaddr(addr)) return false;
+    // page = spt_find_page(spt, addr);
+
+    // bool is_within_stack_limit =
+    //     (addr >= (void *) (USER_STACK - 0x100000) &&
+    //      addr < (void *) USER_STACK);
+
+    // // 스택 확장을 식별
+    // // addr >= f->rsp - 8 : 페이지 폴트가 발생한 주소가 스택 포인터와 충분히
+    // // 가까워 스택 확장 요청으로 간주될 수 있는지를 판단하는 임계값
+    // if (page == NULL)
+    // {
+    //     if (is_within_stack_limit && not_present && is_user_vaddr(addr) && addr <= f->rsp - 8)
+    //     {
+    //         vm_stack_growth(addr);
+    //         return true;
+    //     }
+    //     return false;
+    // }
+
+    // 이미 물리 메모리에 매핑되어 있는데도 폴트가 발생한 경우
     if (!not_present) return false;
 
-	if (is_kernel_vaddr(addr)) return false;
+    if (is_kernel_vaddr(addr)) return false;
+
+    // SPT에서 addr에 해당하는 struct page를 찾음
     page = spt_find_page(spt, addr);
 
+    // page == NULL : 아직 메모리에 로드되지 않았거나 스택처럼 새로 할당되어야
+    // 하는 영역임
     // 스택 확장을 식별
-    // addr >= f->rsp - 8 : 페이지 폴트가 발생한 주소가 스택 포인터와 충분히
-    // 가까워 스택 확장 요청으로 간주될 수 있는지를 판단하는 임계값
+    // addr >= f->rsp - 8 : 페이지 폴트가 발생한
+    // 주소가 스택 포인터와 충분히 가까워 스택 확장 요청으로 간주될 수 있는지를
+    // 판단하는 임계값
     if (page == NULL)
     {
-        if (not_present && is_user_vaddr(addr) && addr <= f->rsp - 8 &&
-            addr <= USER_STACK)
+        if (not_present && is_user_vaddr(addr) &&
+            addr >= thread_current()->user_rsp - 8 && addr <= USER_STACK)
         {
             vm_stack_growth(addr);
             return true;
         }
         return false;
     }
+
 
     return vm_do_claim_page(page);
 }
@@ -347,6 +377,53 @@ void supplemental_page_table_init(struct supplemental_page_table *spt UNUSED)
 bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
                                   struct supplemental_page_table *src UNUSED)
 {
+    /*- gitbook `src`의 모든 페이지를 순회하면서 `dst`에 동일한 항목을 생성합니다. 이때, `uninit` 페이지를 즉시 할당(claim)*/
+
+    //src를 순회하기 위한 준비 hash_iterator 주석으로 권유하는 방법
+    struct hash_iterator i;
+
+    hash_first (&i, &src->spt_hash);
+
+    while (hash_next (&i))
+    {
+        struct page *src_page = hash_entry(hash_cur(&i), struct page, hash_elem);
+
+        //case 1 바로 setup_stack 최초의 uninit page
+        if (src_page->operations->type & VM_MARKER_0){
+            setup_stack(thread_current()->tf);
+        }
+
+        // //case 2 uninit page
+        else if ( src_page->operations->type == VM_UNINIT){
+            //lazy loading이 될 수 있도록 
+            if(!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, src_page->uninit.init, src_page->uninit.aux)){
+                return false;
+            }
+        }else{
+            //case 3 anon, file page 
+            //즉시 할당 한다
+            if(! vm_alloc_page(page_get_type(src_page), src_page->va, src_page->writable)){
+                return false;
+            }
+
+            if(src_page->frame != NULL){
+                if(!vm_claim_page(src_page->va)){
+                    return false;
+                }
+            }
+        }
+        if(src_page->operations->type != VM_UNINIT){
+            struct page *dst_page = spt_find_page(dst, src_page->va);
+            //메모리 복사
+            memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
+        }
+     }
+    return true;
+}
+
+void hash_destructor(struct hash_elem *e, void *aux){
+    struct page *page = hash_entry(e, struct page, hash_elem);
+    free(page);
 }
 
 /* Free the resource hold by the supplemental page table */
@@ -357,4 +434,18 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
      * TODO: writeback all the modified contents to the storage. */
     /* TODO: 스레드가 소유한 모든 보조 페이지 테이블을 파괴하고
      * TODO: 수정된 모든 내용을 저장소에 다시 기록하세요. */
+
+    // struct hash_iterator i;
+
+    // hash_first (&i, &spt->spt_hash);
+
+    // while (hash_next (&i))
+    // {
+    //     struct page *page = hash_entry(hash_cur(&i), struct page, hash_elem);
+    //     if (page->operations->type == VM_FILE){
+    //         do_munmap(page->va);
+    //     }
+    // }
+    hash_destroy(&spt->spt_hash, hash_destructor);
+    spt->spt_hash.buckets = NULL; // 이걸 통해서 다시 spt_init() 해줘야하는 상황인지 판단 가능
 }

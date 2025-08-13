@@ -242,6 +242,7 @@ error:
  * 실패 시 -1을 반환합니다. */
 int process_exec(void *f_name)
 {
+    struct thread *t = thread_current();
     char *file_name = f_name;
     bool success;
     int kb = 1024 * 4;
@@ -259,6 +260,9 @@ int process_exec(void *f_name)
 
     /* 먼저 현재 컨텍스트를 종료합니다 */
     process_cleanup();
+
+    if (t->spt.spt_hash.buckets == NULL)
+        supplemental_page_table_init(&t->spt);
 
     /* 그리고 바이너리를 로드합니다 */
     success = load(file_name, &_if);
@@ -369,7 +373,8 @@ static void process_cleanup(void)
     struct thread *curr = thread_current();
 
 #ifdef VM
-    supplemental_page_table_kill(&curr->spt);
+    if (!hash_empty(&curr->spt.spt_hash))
+        supplemental_page_table_kill(&curr->spt);
 #endif
 
     uint64_t *pml4;
@@ -456,7 +461,7 @@ struct ELF64_PHDR
 #define ELF ELF64_hdr
 #define Phdr ELF64_PHDR
 
-static bool setup_stack(struct intr_frame *if_);
+bool setup_stack(struct intr_frame *if_);
 static bool validate_segment(const struct Phdr *, struct file *);
 static bool load_segment(struct file *file, off_t ofs, uint8_t *upage,
                          uint32_t read_bytes, uint32_t zero_bytes,
@@ -884,7 +889,7 @@ void aux_init(struct lazy_load_info *aux, struct file *file, off_t offset,
 }
 
 /* USER_STACK에 스택의 PAGE를 생성합니다. 성공하면 true를 반환합니다. */
-static bool setup_stack(struct intr_frame *if_)
+bool setup_stack(struct intr_frame *if_)
 {
     uint8_t *kpage;
     bool success = false;
@@ -896,20 +901,27 @@ static bool setup_stack(struct intr_frame *if_)
      * TODO: 페이지가 스택임을 표시해야 합니다. */
     /* TODO: 여기에 코드를 작성하세요 */
 
-    kpage = palloc_get_page(PAL_USER | PAL_ZERO);
-    if (kpage != NULL)
-    {
-        success = (pml4_get_page(t->pml4, stack_bottom) == NULL &&
-                   pml4_set_page(t->pml4, stack_bottom, kpage, true) &&
-                    vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, true));
-					/* success = (pml4_get_page(t->pml4, stack_bottom) == NULL 
-					&& pml4_set_page(t->pml4, stack_bottom, kpage, true)
-					&& vm_alloc_page(VM_ANON | VM_MARKER_0, setup_stack, true)) */
-        if (success)
-            if_->rsp = USER_STACK;
-        else
-            palloc_free_page(kpage);
-    }
+    // kpage = palloc_get_page(PAL_USER | PAL_ZERO);
+    // if (kpage != NULL)
+    // {
+    //     success = (pml4_get_page(t->pml4, stack_bottom) == NULL &&
+    //                pml4_set_page(t->pml4, stack_bottom, kpage, true) &&
+    //                 vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, true));
+
+    //     if (success)
+    //         if_->rsp = USER_STACK;
+    //     else
+    //         palloc_free_page(kpage);
+    // }
+
+    // return success;
+
+    if (success = vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom, true)){
+        //페이지 할당
+        success = vm_claim_page(stack_bottom);
+    } else { return false; }
+    
+    if (success) { if_->rsp = USER_STACK; }
 
     return success;
 }

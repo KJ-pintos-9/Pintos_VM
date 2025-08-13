@@ -385,6 +385,9 @@ void syscall_handler(struct intr_frame *f UNUSED)
     uint64_t sys_num = f->R.rax;  // 시스템 콜 번호 가져오기
     char *file;
     int fd;
+
+    thread_current()->user_rsp = f->rsp;
+
     /* f에서 전달 받은 argument들을 가져온다. */
     switch (sys_num)
     {
@@ -463,6 +466,7 @@ void check_address(void *addr) {
         exit(-1);
     if (get_user(addr) == -1)
         exit(-1);
+    // if (spt_find_page(&t->spt, addr) == NULL) exit(-1);
     // if (page = spt_find_page(&t->spt, addr)) {
     //     if (!page->writable)
     //         exit(-1);

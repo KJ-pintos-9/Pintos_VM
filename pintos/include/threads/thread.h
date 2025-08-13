@@ -139,6 +139,7 @@ struct thread
     struct thread *parent_process; /* 부모 프로세스, 자식 스레드를 만들고 있는
                                       스레드를 thread_current()로 넣어줌 */
 
+    void *user_rsp;
 #ifdef USERPROG
     /* userprog/process.c가 소유 */
     uint64_t *pml4; /* 페이지 맵 레벨 4 */

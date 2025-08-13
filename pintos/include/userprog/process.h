@@ -10,5 +10,6 @@ int process_wait(tid_t);
 void process_exit(void);
 void process_activate(struct thread *next);
 bool load(const char *file_name, struct intr_frame *if_);
+bool setup_stack(struct intr_frame *if_);
 
 #endif /* userprog/process.h */
