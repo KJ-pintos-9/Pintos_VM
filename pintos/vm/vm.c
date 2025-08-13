@@ -167,6 +167,7 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 
 void spt_remove_page(struct supplemental_page_table *spt, struct page *page)
 {
+    hash_delete(&spt->spt_hash, &page->hash_elem);
     vm_dealloc_page(page);
     return true;
 }
@@ -268,7 +269,9 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
     /* TODO: Your code goes here */
     /* TODO: 여기에 코드를 작성하세요. */
 
-		if (is_kernel_vaddr(addr)) return false;
+    if (!not_present) return false;
+
+	if (is_kernel_vaddr(addr)) return false;
     page = spt_find_page(spt, addr);
 
     // 스택 확장을 식별
@@ -276,7 +279,7 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
     // 가까워 스택 확장 요청으로 간주될 수 있는지를 판단하는 임계값
     if (page == NULL)
     {
-        if (not_present && is_user_vaddr(addr) && addr >= f->rsp - 8 &&
+        if (not_present && is_user_vaddr(addr) && addr <= f->rsp - 8 &&
             addr <= USER_STACK)
         {
             vm_stack_growth(addr);
