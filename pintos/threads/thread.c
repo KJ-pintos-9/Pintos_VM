@@ -330,8 +330,8 @@ void thread_exit(void)
 {
     ASSERT(!intr_context());
     struct thread *t = thread_current();
-    intr_disable();
-
+    
+    // intr_disable(); 위치 이동
     // sema_up(&thread_current()->wait_sema); -> 이거 exit()으로 옮김
 
 #ifdef USERPROG
@@ -358,6 +358,7 @@ void thread_exit(void)
     free(t->fdt);
     free(t->exec_file);
 
+    intr_disable();
     do_schedule(THREAD_DYING);
     NOT_REACHED();
 }

@@ -435,17 +435,31 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
     /* TODO: 스레드가 소유한 모든 보조 페이지 테이블을 파괴하고
      * TODO: 수정된 모든 내용을 저장소에 다시 기록하세요. */
 
-    // struct hash_iterator i;
+    struct hash_iterator i;
+    void *mmaped_address[64]; // 일단 임의로 64로 정함
+    int j = 0;
 
-    // hash_first (&i, &spt->spt_hash);
+    hash_first (&i, &spt->spt_hash);
 
-    // while (hash_next (&i))
-    // {
-    //     struct page *page = hash_entry(hash_cur(&i), struct page, hash_elem);
-    //     if (page->operations->type == VM_FILE){
-    //         do_munmap(page->va);
-    //     }
-    // }
+    while (hash_next (&i))
+    {
+        
+        struct page *page = hash_entry(hash_cur(&i), struct page, hash_elem);
+        // if (page->operations->type == VM_FILE){
+        //     do_munmap(page->va);
+        // }
+        if (page->is_mmap_called) {
+            mmaped_address[j] = page->va;
+            j++;
+        }
+    }
+    while (j)
+    {
+        j--;
+        do_munmap(mmaped_address[j]);
+    }
+
+
     hash_destroy(&spt->spt_hash, hash_destructor);
     spt->spt_hash.buckets = NULL; // 이걸 통해서 다시 spt_init() 해줘야하는 상황인지 판단 가능
 }
