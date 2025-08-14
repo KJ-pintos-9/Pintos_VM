@@ -3,15 +3,24 @@
 #include "filesys/file.h"
 #include "vm/vm.h"
 
+struct file_page
+{
+  struct file *file;
+  off_t offset;
+  size_t bytes_read;
+  size_t zero_bytes;
+	bool is_swaped_out;
+};
+
 struct page;
 enum vm_type;
 
-struct file_page {
-};
 
-void vm_file_init (void);
-bool file_backed_initializer (struct page *page, enum vm_type type, void *kva);
-void *do_mmap(void *addr, size_t length, int writable,
-		struct file *file, off_t offset);
-void do_munmap (void *va);
+
+void vm_file_init(void);
+bool file_backed_initializer(struct page *page, enum vm_type type, void *kva);
+// void *do_mmap(void *addr, size_t length, int writable, struct file *file,
+//               off_t offset);
+bool do_mmap (struct page *page, void *aux);
+void do_munmap(void *va);
 #endif

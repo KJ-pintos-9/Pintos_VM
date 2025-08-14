@@ -1,0 +1,27 @@
+# 2025년 최신 C언어 개발 환경을 위한 .clang-format 설정
+# 기반 스타일: Google 스타일을 기반으로 주요 옵션 수정
+Language: Cpp
+BasedOnStyle: Google
+
+# --- 들여쓰기 및 줄 바꿈 ---
+IndentWidth: 4                    # 들여쓰기 너비를 4칸으로 설정
+BreakBeforeBraces: Allman         # 중괄호 '{'는 다른 줄에 위치
+UseTab: Never                     # 탭 대신 공백 문자 사용
+AllowShortFunctionsOnASingleLine: None # 짧은 함수라도 한 줄로 합치지 않음
+ColumnLimit: 80                   # 한 줄의 최대 길이를 80자로 제한
+
+# --- 포인터 및 참조 ---
+PointerAlignment: Right           # 포인터 '*' 기호를 변수명 쪽에 정렬 (예: int* a -> int *a)
+DerivePointerAlignment: false     # 기반 스타일의 포인터 정렬을 따르지 않고 위에서 설정한 값을 강제
+
+# --- 공백 제어 ---
+SpaceAfterCStyleCast: true        # C언어 스타일 캐스팅 후 공백 추가 (예: (int)a)
+SpaceBeforeParens: ControlStatements # 제어문(if, for, while)의 괄호 앞에만 공백 추가
+SpacesInParentheses: false        # 괄호 안쪽에는 공백을 넣지 않음
+
+# --- 코드 정렬 및 순서 ---
+SortIncludes: false                # include 구문을 알파벳 순으로 자동 정렬
+# AlignTrailingComments: true       # 줄 끝에 오는 주석들을 세로로 정렬
+
+# --- C++11 이상 기능 호환성 (C언어 프로젝트에서도 호환) ---
+Standard: Auto                    # 코드에 맞는 C/C++ 표준을 자동으로 감지

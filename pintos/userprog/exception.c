@@ -117,6 +117,8 @@ page_fault (struct intr_frame *f) {
 	   이것은 코드나 데이터를 가리킬 수 있습니다. 이것이 반드시 폴트를 발생시킨
 	   명령어의 주소는 아닙니다 (그것은 f->rip입니다). */
 
+	if (user)
+		thread_current()->user_rsp = f->rsp;
 
 	fault_addr = (void *) rcr2();
 
@@ -142,12 +144,15 @@ page_fault (struct intr_frame *f) {
 	if (user) exit(-1);
 	else {
 		/* 폴트가 실제 폴트라면, 정보를 보여주고 종료합니다. */
-		printf ("Page fault at %p: %s error %s page in %s context.\n",
-				fault_addr,
-				not_present ? "not present" : "rights violation",
-				write ? "writing" : "reading",
-				user ? "user" : "kernel");
-		kill (f);
+		// printf ("Page fault at %p: %s error %s page in %s context.\n",
+		// 		fault_addr,
+		// 		not_present ? "not present" : "rights violation",
+		// 		write ? "writing" : "reading",
+		// 		user ? "user" : "kernel");
+		// kill (f);
+		f->R.rax = -1;
+		f->rip = f->rip + 1;
+		return;
 	}
 }
 
