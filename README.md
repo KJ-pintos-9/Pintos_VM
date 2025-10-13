@@ -38,12 +38,58 @@
 
 ---
 
+## 협업 방식
+팀원들은 각자 맡은 기능을 구현해 PR로 공유하고, 데일리 스크럼과 노션을 통해 진행 상황을 꾸준히 업데이트했습니다.
+주요 기능은 함께 디버깅하며 페어 프로그래밍으로 완성했고, 때로는 한 컴퓨터에서 협업하며 문제를 해결했습니다.
 
+
+## ooleem-generator
+
+Anonymous Page / Frame Table 구조 설계 및 anon_page 확장 (is_swapped_out 필드 추가)
+
+Page Fault Handler 및 커널-유저 간 페이지 폴트 처리 로직 구현
+
+Memory Mapping (mmap/munmap) 시스템 설계 및 동기화 로직 개선
+
+spt_kill() 리팩토링을 통해 mmap-exit 테스트 통과
+
+파일 접근 동기화(filesys_lock) 및 메모리 자원 관리 최적화
+
+전체 테스트 케이스 통합 및 디버깅 리드
+
+---
+
+## Yerinnnn
+
+SPT(Supplementary Page Table) 구조 설계 및 주요 함수(spt_init, spt_find, spt_insert) 구현
+
+Frame Table 및 Stack Growth 메커니즘 설계·구현
+
+vm_alloc_page_with_initializer()를 통해 페이지 초기화 과정 정립
+
+프로젝트 전반의 코드 포맷팅, 헤더 구조, include 관계 정리
+
+테스트 케이스 통합 및 디버깅 과정 참여
+
+---
+
+## kimkimkimbo
+
+Lazy Loading 파이프라인 핵심 설계
+
+lazy_load_info 구조체 및 aux 정보 전달 방식 설계
+
+lazy_load_segment() 구현을 통해 유저 프로그램 로딩 과정의 Lazy Allocation 로직 완성
+
+SPT 복사 및 제거 로직 (supplemental_page_table_copy, supplemental_page_table_kill) 구현
+
+테스트 케이스 통합 및 디버깅 과정 참여
 
 ---
 
 ## 테스트 결과
 
+### 136/141 테스트 케이스 통과 (96.5%)
 <img width="1512" height="946" alt="스크린샷 2025-10-14 오전 1 30 40" src="https://github.com/user-attachments/assets/5aee40f9-c8b1-46de-aa81-865a7684e51b" />
 
 ---
